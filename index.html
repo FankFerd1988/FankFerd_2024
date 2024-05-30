@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แสดงข้อมูล API ในรูปแบบการ์ด</title>
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+  <!-- MDB -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.1/mdb.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/maketline/goodday/font/stylesheet.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <style>
+    /* สร้างสไตล์สำหรับการ์ด (card) */
+    .card {
+      //border: 1px solid #ccc;
+      /* padding: 10px;
+      margin: 10px;
+      width: 300px; */
+      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    body,
+    h5 {
+      font-family: 'line_seed_sans_th';
+      //font-weight: bold;    /*กรณีอยากได้ตัวหนาเปิดตัวนี้มาใช้*/
+    }
+
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <?!=HtmlService.createHtmlOutputFromFile('navbar').getContent() ?>
+  <!-- ส่วนของการแสดงข้อมูล -->
+  <div class="container mt-2">
+    <h1 class="mt-4"><i class="fa-solid fa-bullhorn fa-bounce"></i><?!=altText?></h1>
+    <div class="row" id="card-container">
+      <!-- ที่จะแสดงการ์ดข่าว -->
+    </div>
+    <div class="row">
+      <div class="col-lg-12" id="pagination-container">
+        <!-- ที่จะแสดงการแบ่งหน้า -->
+      </div>
+    </div>
+  </div>
+  <?!= HtmlService.createHtmlOutputFromFile('footer').getContent() ?>
+
+<script>
+    const cardsPerPage = 4; // จำนวนการ์ดต่อหน้า
+    let currentPage = 1; // หน้าปัจจุบัน
+
+    // สร้างฟังก์ชันสำหรับแสดงการ์ดบนหน้าเว็บ
+    function displayCards(pageNumber, data) {
+      const cardContainer = document.getElementById('card-container');
+      cardContainer.innerHTML = ''; // ลบข้อมูลที่มีอยู่เดิม
+
+      const startIndex = (pageNumber - 1) * cardsPerPage;
+      const endIndex = pageNumber * cardsPerPage;
+      const cardsToDisplay = data.slice(startIndex, endIndex);
+
+      cardsToDisplay.forEach(article => {
+        var card = document.createElement('div');
+        card.className = 'col-lg-3 mb-3';
+        card.innerHTML = `
+          <div class="card">
+            <img src="${article.urlToImage}" class="card-img-top" alt="...">
+            <div class="card-body">
+              <h5 class="card-title">${article.title}</h5>
+              <p class="card-text">${article.description}</p>
+              <a href="${article.url}" class="btn btn-primary" target="_blank">อ่านข่าว</a>
+            </div>
+          </div>
+        `;
+        cardContainer.appendChild(card);
+      });
+    }
+  // สร้างฟังก์ชันสำหรับสร้างเมนูแบ่งหน้า
+    function createPagination(data) {
+      const paginationContainer = document.getElementById('pagination-container');
+      paginationContainer.innerHTML = ''; // ลบเมนูแบ่งหน้าเดิม
+
+      const totalPages = Math.ceil(data.length / cardsPerPage);
+
+      const paginationList = document.createElement('ul');
+      paginationList.className = 'pagination justify-content-center';
+
+      const prevPageItem = document.createElement('li');
+      prevPageItem.className = 'page-item';
+      const prevPageLink = document.createElement('a');
+      prevPageLink.className = 'page-link';
+      prevPageLink.href = '#';
+      prevPageLink.innerHTML = '<span aria-hidden="true">&laquo;</span>';
+      prevPageLink.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          displayCards(currentPage, data);
+        }
+      });
+      prevPageItem.appendChild(prevPageLink);
+      paginationList.appendChild(prevPageItem);
+
+      for (let i = 1; i <= totalPages; i++) {
+        const pageItem = document.createElement('li');
+        pageItem.className = 'page-item';
+        const pageLink = document.createElement('a');
+        pageLink.className = 'page-link';
+        pageLink.href = '#';
+        pageLink.textContent = i;
+
+        pageLink.addEventListener('click', () => {
+          currentPage = i;
+          displayCards(currentPage, data);
+        });
+
+        pageItem.appendChild(pageLink);
+        paginationList.appendChild(pageItem);
+      }
+
+      const nextPageItem = document.createElement('li');
+      nextPageItem.className = 'page-item';
+      const nextPageLink = document.createElement('a');
+      nextPageLink.className = 'page-link';
+      nextPageLink.href = '#';
+      nextPageLink.innerHTML = '<span aria-hidden="true">&raquo;</span>';
+      nextPageLink.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          displayCards(currentPage, data);
+        }
+      });
+      nextPageItem.appendChild(nextPageLink);
+      paginationList.appendChild(nextPageItem);
+
+      paginationContainer.appendChild(paginationList);
+    }
+
+    // สร้างฟังก์ชันสำหรับดึงข้อมูลจาก API
+    function fetchDataFromAPI() {
+      // ใช้ fetch เพื่อดึงข้อมูลจาก API
+      fetch('<?!= linkapi ?>')
+        .then(response => response.json()) // แปลงข้อมูล JSON
+        .then(data => {
+          // แสดงการ์ดและเมนูแบ่งหน้าสำหรับหน้าแรก
+          displayCards(currentPage, data);
+          createPagination(data);
+        })
+        .catch(error => {
+          console.error('เกิดข้อผิดพลาดในการดึงข้อมูล: ', error);
+        });
+    }
+
+    // เรียกใช้ฟังก์ชันเมื่อหน้าเว็บโหลด
+    window.onload = fetchDataFromAPI;
+
+</script>
+
+  <?!=HtmlService.createHtmlOutputFromFile('addNews').getContent() ?>
+  <?!= HtmlService.createHtmlOutputFromFile('js').getContent() ?>
+  <!-- MDB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.1/mdb.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>
